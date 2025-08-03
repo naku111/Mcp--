@@ -1,0 +1,41 @@
+{
+  "name": "web-scraper-mcp",
+  "version": "1.0.0",
+  "description": "基于 MCP 的网页爬取服务器，内置 Puppeteer 无头浏览器支持",
+  "main": "build/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node build/start.js",
+    "test": "node test-all-tools.js",
+    "setup:browser": "npx puppeteer browsers install chrome"
+  },
+  "keywords": [
+    "mcp",
+    "web-scraper",
+    "puppeteer",
+    "typescript",
+    "crawler"
+  ],
+  "author": "CodeBuddy",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "axios": "^1.6.2",
+    "cheerio": "^1.0.0-rc.12",
+    "chrome-aws-lambda": "^10.1.0",
+    "jsdom": "^23.0.1",
+    "node-html-parser": "^6.1.12",
+    "puppeteer": "^22.15.0",
+    "puppeteer-core": "^24.15.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "turndown": "^7.1.2"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^21.1.6",
+    "@types/node": "^20.10.4",
+    "typescript": "^5.3.3"
+  }
+}
