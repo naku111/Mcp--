@@ -55,3 +55,7 @@ screenshot-*.png
 
 # 测试输出
 test-output/
+
+# 面试文件
+interview_qa.md
+nakupenda.mdc

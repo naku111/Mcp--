@@ -1,4 +1,4 @@
-const { join } = require('path');
+const { join } = require("path");
 
 /**
  * @type {import("puppeteer").Configuration}
@@ -8,11 +8,11 @@ const { join } = require('path');
  */
 module.exports = {
   // 指定从国内镜像下载浏览器，解决在服务器环境中可能出现的网络问题。
-  downloadBaseUrl: 'https://npm.taobao.org/mirrors',
-  
+  downloadBaseUrl: "https://npmmirror.com/mirrors/chromium-browser-snapshots/",
+
   // 关键：确保 Puppeteer 会下载浏览器，而不是依赖系统预装。
   skipDownload: false,
-  
+
   // 将浏览器缓存到项目本地的 .cache 目录中，使项目自包含，便于移植。
-  cacheDirectory: join(__dirname, '.cache', 'puppeteer'),
+  cacheDirectory: join(__dirname, ".cache", "puppeteer"),
 };

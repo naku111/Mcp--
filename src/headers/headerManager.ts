@@ -1,24 +1,10 @@
 /**
  * @class HeaderManager
  * @description 负责管理和维护针对不同域名的自定义HTTP请求头。
- * 这个类允许用户为特定网站预设请求头（如User-Agent, Cookie, Authorization），
- * 在爬取时自动应用，对于模拟登录状态、绕过反爬虫策略至关重要。
  */
 export class HeaderManager {
-  /**
-   * @private
-   * @property {Map<string, Record<string, string>>} domainHeaders
-   * @description 使用Map结构存储域名与请求头的映射关系。
-   * - Key: 经过标准化的域名字符串 (e.g., "example.com")
-   * - Value: 一个对象，代表该域名的所有自定义请求头 (e.g., { 'User-Agent': 'MyCrawler' })
-   * 使用Map而非普通对象，是因为Map在频繁增删键值对的场景下性能更优。
-   */
   private domainHeaders: Map<string, Record<string, string>> = new Map();
 
-  /**
-   * @constructor
-   * @description 初始化HeaderManager实例，并加载预设的默认请求头。
-   */
   constructor() {
     // 初始化时，为一些常见网站预设好请求头，方便开箱即用。
     this.initializeDefaultHeaders();
@@ -34,12 +20,12 @@ export class HeaderManager {
   setHeaders(domain: string, headers: Record<string, string>): void {
     // 始终使用标准化的域名作为键，确保一致性。
     const normalizedDomain = this.normalizeDomain(domain);
-    
+
     // 获取该域名已有的请求头，如果不存在则返回空对象。
     const existingHeaders = this.domainHeaders.get(normalizedDomain) || {};
     // 使用对象展开语法合并新旧请求头，实现更新或添加。
     const mergedHeaders = { ...existingHeaders, ...headers };
-    
+
     this.domainHeaders.set(normalizedDomain, mergedHeaders);
   }
 
@@ -76,12 +62,12 @@ export class HeaderManager {
   removeHeaderField(domain: string, fieldName: string): boolean {
     const normalizedDomain = this.normalizeDomain(domain);
     const headers = this.domainHeaders.get(normalizedDomain);
-    
+
     if (headers && fieldName in headers) {
       delete headers[fieldName];
       return true;
     }
-    
+
     return false;
   }
 
@@ -101,12 +87,12 @@ export class HeaderManager {
    */
   getAllHeaders(): Record<string, Record<string, string>> {
     const result: Record<string, Record<string, string>> = {};
-    
+
     this.domainHeaders.forEach((headers, domain) => {
       // 返回一个深拷贝，防止外部修改影响内部状态
       result[domain] = { ...headers };
     });
-    
+
     return result;
   }
 
@@ -120,14 +106,14 @@ export class HeaderManager {
    */
   private normalizeDomain(domain: string): string {
     // 1. 移除协议头 (http://, https://)
-    let normalized = domain.replace(/^https?:\/\//, '');
-    
+    let normalized = domain.replace(/^https?:\/\//, "");
+
     // 2. 移除协议后的路径部分
-    normalized = normalized.split('/')[0];
-    
+    normalized = normalized.split("/")[0];
+
     // 3. 移除端口号
-    normalized = normalized.split(':')[0];
-    
+    normalized = normalized.split(":")[0];
+
     // 4. 统一转换为小写，便于匹配
     return normalized.toLowerCase();
   }
@@ -139,40 +125,46 @@ export class HeaderManager {
    */
   private initializeDefaultHeaders(): void {
     // 为常见的内容平台设置一些基本的、无害的请求头，可以提高爬取成功率。
-    this.setHeaders('github.com', {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-      'Cache-Control': 'no-cache'
+    this.setHeaders("github.com", {
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+      "Cache-Control": "no-cache",
     });
 
-    this.setHeaders('zhihu.com', {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-      'Referer': 'https://www.zhihu.com/'
+    this.setHeaders("zhihu.com", {
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+      Referer: "https://www.zhihu.com/",
     });
 
-    this.setHeaders('weibo.com', {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-      'Referer': 'https://weibo.com/'
+    this.setHeaders("weibo.com", {
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+      Referer: "https://weibo.com/",
     });
 
-    this.setHeaders('douban.com', {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-      'Referer': 'https://www.douban.com/'
+    this.setHeaders("douban.com", {
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+      Referer: "https://www.douban.com/",
     });
 
-    this.setHeaders('jianshu.com', {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-      'Referer': 'https://www.jianshu.com/'
+    this.setHeaders("jianshu.com", {
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+      Referer: "https://www.jianshu.com/",
     });
 
-    this.setHeaders('csdn.net', {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-      'Referer': 'https://www.csdn.net/'
+    this.setHeaders("csdn.net", {
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+      Referer: "https://www.csdn.net/",
     });
   }
 
@@ -183,16 +175,18 @@ export class HeaderManager {
    */
   addAntiDetectionHeaders(domain: string): void {
     const antiDetectionHeaders = {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-      'Cache-Control': 'max-age=0',
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none',
-      'Sec-Fetch-User': '?1',
-      'Upgrade-Insecure-Requests': '1',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+      "Cache-Control": "max-age=0",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
     };
 
     this.setHeaders(domain, antiDetectionHeaders);
@@ -205,10 +199,11 @@ export class HeaderManager {
    */
   setMobileHeaders(domain: string): void {
     const mobileHeaders = {
-      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-      'Accept-Encoding': 'gzip, deflate, br'
+      "User-Agent":
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+      "Accept-Encoding": "gzip, deflate, br",
     };
 
     this.setHeaders(domain, mobileHeaders);
@@ -222,13 +217,13 @@ export class HeaderManager {
    */
   setApiHeaders(domain: string, apiKey?: string): void {
     const apiHeaders: Record<string, string> = {
-      'Accept': 'application/json, text/plain, */*',
-      'Content-Type': 'application/json',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
+      Accept: "application/json, text/plain, */*",
+      "Content-Type": "application/json",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
     };
 
     if (apiKey) {
-      apiHeaders['Authorization'] = `Bearer ${apiKey}`;
+      apiHeaders["Authorization"] = `Bearer ${apiKey}`;
     }
 
     this.setHeaders(domain, apiHeaders);

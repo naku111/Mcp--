@@ -1,18 +1,12 @@
-import axios from 'axios';
-import * as cheerio from 'cheerio';
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { Browser, Page } from 'puppeteer';
-import fs from 'fs';
-
-// 应用隐身插件，增强反爬虫能力
-puppeteer.use(StealthPlugin());
+import axios from "axios";
+import * as cheerio from "cheerio";
+import puppeteer, { Browser, Page } from "puppeteer";
+import fs from "fs";
 
 /**
  * 浏览器管理器 (BrowserManager)
  * 这是一个静态类，负责在整个应用生命周期内管理唯一的浏览器实例。
  * 它的核心职责是智能地寻找一个可用的、稳定的Chrome或Chromium浏览器可执行文件。
- * 策略：
  * 1. 优先查找用户系统上已安装的Chrome浏览器，以获得最佳性能和兼容性。
  * 2. 如果找不到，则回退到使用Puppeteer自动下载的Chromium版本。
  * 3. 缓存找到的路径，避免重复查找。
@@ -26,44 +20,39 @@ class BrowserManager {
       return this.executablePath;
     }
 
-    console.log('[浏览器管理器] 正在检查浏览器环境...');
-    
     // 定义常见的系统Chrome安装路径
-    const defaultChromePaths = process.platform === 'win32'
-      ? [
-          'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-          'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-          process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe'
-        ]
-      : [
-          '/usr/bin/google-chrome',
-          '/usr/bin/google-chrome-stable'
-        ];
+    const defaultChromePaths =
+      process.platform === "win32"
+        ? [
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+            process.env.LOCALAPPDATA +
+              "\\Google\\Chrome\\Application\\chrome.exe",
+          ]
+        : ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable"];
 
     // 遍历检查系统路径是否存在
     for (const path of defaultChromePaths) {
       if (fs.existsSync(path)) {
-        console.log(`[浏览器管理器] 成功找到系统安装的Chrome: ${path}`);
         this.executablePath = path;
         return path;
       }
     }
 
     // 如果系统路径都找不到，则启动Puppeteer来获取其内置浏览器路径
-    console.log('[浏览器管理器] 未在常规路径找到Chrome，将尝试使用Puppeteer下载的版本。');
     let tempBrowser: Browser | null = null;
     try {
-      tempBrowser = await puppeteer.launch({ headless: 'new' });
+      tempBrowser = await puppeteer.launch({ headless: "new" });
       // 从启动的临时浏览器实例中获取可执行文件路径
       const execPath = (tempBrowser as any)._process?.spawnfile;
       if (execPath && fs.existsSync(execPath)) {
-        console.log(`[浏览器管理器] 成功定位到Puppeteer内置的浏览器: ${execPath}`);
         this.executablePath = execPath;
         return execPath;
       }
-      throw new Error('Puppeteer启动后未能提供有效的浏览器路径。');
+      throw new Error("Puppeteer启动后未能提供有效的浏览器路径。");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new Error(`[浏览器管理器] 浏览器初始化失败: ${errorMessage}`);
     } finally {
       if (tempBrowser) await tempBrowser.close();
@@ -107,75 +96,90 @@ export class WebScraper {
 
   /**
    * 智能爬取入口方法。
-   * 这是一个策略分发器，根据URL类型、用户选项和页面内容特征，动态选择最优的爬取策略。
    * @param url 要爬取的URL
    * @param options 爬取选项
    */
-  async scrape(url: string, options: ScrapeOptions = {}): Promise<ScrapedContent> {
+  async scrape(
+    url: string,
+    options: ScrapeOptions = {}
+  ): Promise<ScrapedContent> {
     const { usePuppeteer = false } = options;
 
-    // 策略1：如果URL是data URI，直接使用Puppeteer处理
-    if (url.startsWith('data:')) {
-      console.log('检测到 data: URI, 直接使用 Puppeteer 进行处理...');
+    // 策略1：如果URL是data URI（统一资源标识符），不是一个有效的http URL
+    // 需要使用Puppeteer处理
+    if (url.startsWith("data:")) {
       return this.scrapeWithPuppeteer(url, options);
     }
 
     // 策略2：如果用户强制指定，直接使用Puppeteer
     if (usePuppeteer) {
-      console.log('用户强制指定使用 Puppeteer 进行爬取...');
       return this.scrapeWithPuppeteer(url, options);
     }
 
     // 策略3（默认）：先尝试快速的静态爬取
-    console.log(`[快速模式] 正在对 ${url} 进行静态爬取...`);
     try {
       const staticContent = await this.scrapeWithAxios(url, options);
-      
+
       // 对静态内容进行启发式分析，判断是否为需要JS渲染的SPA页面
       const jsRequiredKeywords = [
-        '您需要允许该网站执行 JavaScript', 'enable JavaScript', 'requires JavaScript',
-        'not support a browser that has JavaScript disabled', 'Please enable JavaScript'
+        "您需要允许该网站执行 JavaScript",
+        "enable JavaScript",
+        "requires JavaScript",
+        "not support a browser that has JavaScript disabled",
+        "Please enable JavaScript",
       ];
-      const contentIsJSReliant = jsRequiredKeywords.some(keyword =>
+      const contentIsJSReliant = jsRequiredKeywords.some((keyword) =>
         staticContent.html.toLowerCase().includes(keyword.toLowerCase())
       );
 
       // 如果内容明显依赖JS，则自动切换到Puppeteer
       if (contentIsJSReliant) {
-        console.warn('警告：静态内容可能不完整（依赖JavaScript），自动切换到Puppeteer深度模式...');
         return this.scrapeWithPuppeteer(url, options);
       }
-
-      console.log('[快速模式] 静态爬取成功。');
       return staticContent;
     } catch (error) {
       // 如果静态爬取失败（如网络错误、超时），则自动降级到更强大的Puppeteer模式重试
-      console.error(`静态爬取失败: ${error instanceof Error ? error.message : '未知错误'}。自动尝试使用 Puppeteer...`);
+      console.error(
+        `静态爬取失败: ${
+          error instanceof Error ? error.message : "未知错误"
+        }。自动尝试使用 Puppeteer...`
+      );
       return this.scrapeWithPuppeteer(url, options);
     }
   }
 
   /**
    * 使用 Axios 进行快速、轻量级的静态HTML爬取。
-   * 适用于传统的、非SPA的服务端渲染页面。
    */
-  private async scrapeWithAxios(url: string, options: ScrapeOptions): Promise<ScrapedContent> {
+  private async scrapeWithAxios(
+    url: string,
+    options: ScrapeOptions
+  ): Promise<ScrapedContent> {
     const { headers = {}, timeout = 15000 } = options; // 默认15秒超时
     try {
       const response = await axios.get(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          ...headers
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          ...headers,
         },
-        timeout
+        timeout,
       });
 
       // 处理返回数据，确保是字符串格式
-      const htmlContent = typeof response.data === 'object' ? JSON.stringify(response.data) : String(response.data);
+      const htmlContent =
+        typeof response.data === "object"
+          ? JSON.stringify(response.data)
+          : String(response.data);
       const $ = cheerio.load(htmlContent);
+      //将这个 HTML 字符串解析成一个内存中的 DOM 结构。
       return this.extractContent($, url, htmlContent);
     } catch (error) {
-      throw new Error(`Axios爬取失败: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Axios爬取失败: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   }
 
@@ -183,11 +187,21 @@ export class WebScraper {
    * 使用 Puppeteer 进行重量级但功能强大的动态页面爬取。
    * 能够完整渲染JavaScript，处理SPA应用和复杂的交互。
    */
-  private async scrapeWithPuppeteer(url: string, options: ScrapeOptions): Promise<ScrapedContent> {
-    const { headers = {}, timeout = 60000, waitForSelector, screenshot = false } = options;
+  private async scrapeWithPuppeteer(
+    url: string,
+    options: ScrapeOptions
+  ): Promise<ScrapedContent> {
+    const {
+      headers = {},
+      timeout = 60000,
+      waitForSelector,
+      screenshot = false,
+    } = options;
     let page: Page | null = null;
 
-    console.log("\n✅✅✅ [深度模式] Puppeteer已被激活！正在启动无头浏览器... ✅✅✅\n");
+    console.log(
+      "\n✅✅✅ [深度模式] Puppeteer已被激活！正在启动无头浏览器... ✅✅✅\n"
+    );
 
     try {
       // 如果共享的浏览器实例不存在，则创建一个
@@ -195,43 +209,50 @@ export class WebScraper {
         const executablePath = await BrowserManager.ensureBrowserIsReady();
         this.browser = await puppeteer.launch({
           executablePath,
-          headless: 'new',
-          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+          headless: "new",
+          args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+          ],
         });
       }
 
-      page = await this.browser.newPage();
+      page = await this.browser!.newPage();
       await page.setViewport({ width: 1280, height: 800 });
-      if (Object.keys(headers).length > 0) await page.setExtraHTTPHeaders(headers);
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36');
+      if (Object.keys(headers).length > 0)
+        await page.setExtraHTTPHeaders(headers);
+      await page.setUserAgent(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+      );
 
-      console.log(`[Puppeteer] 正在导航到: ${url} (超时: ${timeout / 1000}s)`);
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
-      console.log('[Puppeteer] 页面DOM加载完成，开始智能等待动态内容...');
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout });
 
       // 智能等待策略
       if (waitForSelector) {
         console.log(`[Puppeteer] 等待用户指定的选择器: ${waitForSelector}`);
         await page.waitForSelector(waitForSelector, { timeout: 15000 });
-      } else if (url.includes('toutiao.com')) {
-        console.log('[Puppeteer] 检测到今日头条，特殊等待策略启动...');
-        try {
-          await page.waitForSelector('div.feed-card, div.article-content', { timeout: 15000 });
-          console.log('[Puppeteer] 今日头条特定内容加载成功。');
-        } catch (e) { console.warn('[Puppeteer] 等待今日头条元素超时，将继续执行...'); }
+        //puppeteer会等待这个元素加载完成
       } else {
-        console.log('[Puppeteer] 执行通用等待策略（3秒），等待异步JS加载...');
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        //通用等待三秒
+        console.log("[Puppeteer] 执行通用等待策略（3秒），等待异步JS加载...");
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
 
       // 获取经JS渲染后的最终HTML
       const html = await page.content();
-      if (screenshot) await page.screenshot({ path: `screenshot-${Date.now()}.png` });
-      
+      if (screenshot)
+        await page.screenshot({ path: `screenshot-${Date.now()}.png` });
+
       const $ = cheerio.load(html);
       return this.extractContent($, url, html);
     } catch (error) {
-      throw new Error(`Puppeteer爬取失败: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Puppeteer爬取失败: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     } finally {
       // 关闭页面，但保持浏览器实例打开以供下次使用
       if (page) await page.close();
@@ -242,64 +263,98 @@ export class WebScraper {
    * 使用 Cheerio 从HTML中提取结构化内容。
    * 这是一个通用的内容解析器。
    */
-  private extractContent($: cheerio.CheerioAPI, url: string, html: string): ScrapedContent {
-    const title = $('title').text().trim() || $('h1').first().text().trim() || '无标题';
-    let content = '';
-    
+  private extractContent(
+    $: cheerio.CheerioAPI,
+    url: string,
+    html: string
+  ): ScrapedContent {
+    const title =
+      $("title").text().trim() || $("h1").first().text().trim() || "无标题";
+    let content = "";
+
     // 优先级列表，用于寻找最可能包含主要内容的容器
-    const contentSelectors = ['main', 'article', '.content', '.post-content', '.entry-content', '#content', '.main-content', 'body'];
+    const contentSelectors = [
+      "main",
+      "article",
+      ".content",
+      ".post-content",
+      ".entry-content",
+      "#content",
+      ".main-content",
+      "body",
+    ];
 
     for (const selector of contentSelectors) {
       const element = $(selector);
       if (element.length > 0) {
         // 移除脚本、样式、导航等无关元素
-        element.find('script, style, nav, header, footer, aside, .actions, .buttons').remove();
+        element
+          .find("script, style, nav, header, footer, aside, .actions, .buttons")
+          .remove();
         content = element.text().trim();
-        // 如果内容足够长，就认为找到了主要内容，停止搜索
+        // 只返回用户在浏览器看到的文本
         if (content.length > 100) break;
       }
     }
     // 如果遍历完所有选择器还没找到内容，则使用body作为最后防线
     if (!content) {
-      $('script, style, nav, header, footer, aside').remove();
-      content = $('body').text().trim();
+      $("script, style, nav, header, footer, aside").remove();
+      content = $("body").text().trim();
     }
 
     // 提取所有链接并转换为绝对路径
     const links: string[] = [];
-    $('a[href]').each((_, element) => {
-      const href = $(element).attr('href');
-      if (href) { try { links.push(new URL(href, url).href); } catch {} }
+    //遍历所有元素
+    $("a[href]").each((_, element) => {
+      const href = $(element).attr("href");
+      if (href) {
+        try {
+          links.push(new URL(href, url).href);
+        } catch {}
+      }
     });
 
     // 提取所有图片链接并转换为绝对路径
     const images: string[] = [];
-    $('img[src]').each((_, element) => {
-      const src = $(element).attr('src');
-      if (src) { try { images.push(new URL(src, url).href); } catch {} }
+    $("img[src]").each((_, element) => {
+      const src = $(element).attr("src");
+      if (src) {
+        try {
+          images.push(new URL(src, url).href);
+          //URL 构造函数被设计为在接收到无法解析为有效 URL 的输入时，会抛出一个 TypeError 异常。
+        } catch {}
+      }
     });
 
     // 提取页面的元数据
     const metadata: Record<string, any> = {};
-    $('meta').each((_, element) => {
-      const name = $(element).attr('name') || $(element).attr('property');
-      const metaContent = $(element).attr('content');
+    //Record 是 TypeScript 中的一个工具类型 (Utility Type)，它用于构建一个对象类型，其所有属性的键和值都遵循特定的类型约束。
+    $("meta").each((_, element) => {
+      const name = $(element).attr("name") || $(element).attr("property");
+      const metaContent = $(element).attr("content");
       if (name && metaContent) metadata[name] = metaContent;
     });
 
     return {
-      url, title, content: this.cleanText(content), html,
+      url,
+      title,
+      content: this.cleanText(content),
+      html,
       links: [...new Set(links)], // 去重
       images: [...new Set(images)], // 去重
-      metadata, timestamp: new Date().toISOString()
+      metadata,
+      timestamp: new Date().toISOString(),
     };
   }
 
   /**
-   * 清理文本，规范化空白字符。
+   * 移除多余空格或者换行符。
    */
   private cleanText(text: string): string {
-    return text.replace(/\s+/g, ' ').replace(/\n\s*\n/g, '\n\n').trim();
+    return text
+      .replace(/\s+/g, " ")
+      .replace(/\n\s*\n/g, "\n\n")
+      .trim();
   }
 
   /**

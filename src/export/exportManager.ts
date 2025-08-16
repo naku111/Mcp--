@@ -1,5 +1,5 @@
-import TurndownService from 'turndown';
-import { ScrapedContent } from '../scraper/webScraper.js';
+import TurndownService from "turndown";
+import { ScrapedContent } from "../scraper/webScraper.js";
 
 /**
  * 定义了支持的导出格式类型。
@@ -8,7 +8,7 @@ import { ScrapedContent } from '../scraper/webScraper.js';
  * - html: 清理后的HTML，保留基本结构。
  * - json: 结构化数据，用于程序化处理。
  */
-export type ExportFormat = 'markdown' | 'text' | 'html' | 'json';
+export type ExportFormat = "markdown" | "text" | "html" | "json";
 
 /**
  * 导出管理器 (ExportManager)
@@ -24,8 +24,8 @@ export class ExportManager {
    */
   constructor() {
     this.turndownService = new TurndownService({
-      headingStyle: 'atx', // 使用 '#' 作为标题样式
-      codeBlockStyle: 'fenced' // 使用 ``` 作为代码块样式
+      headingStyle: "atx", // 使用 '#' 作为标题样式
+      codeBlockStyle: "fenced", // 使用 ``` 作为代码块样式
     });
 
     // 设置自定义的转换规则，以优化输出的 Markdown 质量。
@@ -40,18 +40,18 @@ export class ExportManager {
    */
   async export(content: ScrapedContent, format: ExportFormat): Promise<string> {
     switch (format) {
-      case 'markdown':
+      case "markdown":
         return this.exportToMarkdown(content);
-      
-      case 'text':
+
+      case "text":
         return this.exportToText(content);
-      
-      case 'html':
+
+      case "html":
         return this.exportToHtml(content);
-      
-      case 'json':
+
+      case "json":
         return this.exportToJson(content);
-      
+
       default:
         // 如果格式不受支持，则抛出错误。
         throw new Error(`不支持的导出格式: ${format}`);
@@ -64,14 +64,24 @@ export class ExportManager {
    * @returns 格式化后的 Markdown 字符串。
    */
   private exportToMarkdown(content: ScrapedContent): string {
-    const { title, url, content: textContent, links, images, metadata, timestamp } = content;
+    const {
+      title,
+      url,
+      content: textContent,
+      links,
+      images,
+      metadata,
+      timestamp,
+    } = content;
 
-    let markdown = '';
+    let markdown = "";
 
     // 1. 添加元数据头部：标题、来源URL和爬取时间。
     markdown += `# ${title}\n\n`;
     markdown += `**来源:** ${url}\n`;
-    markdown += `**爬取时间:** ${new Date(timestamp).toLocaleString('zh-CN')}\n\n`;
+    markdown += `**爬取时间:** ${new Date(timestamp).toLocaleString(
+      "zh-CN"
+    )}\n\n`;
 
     // 2. 添加正文内容。
     markdown += `## 内容\n\n`;
@@ -88,7 +98,7 @@ export class ExportManager {
     // 3. 添加相关链接列表（最多显示20个）。
     if (links.length > 0) {
       markdown += `\n\n## 相关链接\n\n`;
-      links.slice(0, 20).forEach(link => {
+      links.slice(0, 20).forEach((link) => {
         markdown += `- [${link}](${link})\n`;
       });
       if (links.length > 20) {
@@ -99,7 +109,7 @@ export class ExportManager {
     // 4. 添加图片列表（最多显示10个）。
     if (images.length > 0) {
       markdown += `\n\n## 图片\n\n`;
-      images.slice(0, 10).forEach(image => {
+      images.slice(0, 10).forEach((image) => {
         markdown += `![图片](${image})\n\n`;
       });
       if (images.length > 10) {
@@ -111,7 +121,7 @@ export class ExportManager {
     if (Object.keys(metadata).length > 0) {
       markdown += `\n\n## 元数据\n\n`;
       Object.entries(metadata).forEach(([key, value]) => {
-        if (typeof value === 'string' && value.length < 200) {
+        if (typeof value === "string" && value.length < 200) {
           markdown += `**${key}:** ${value}\n\n`;
         }
       });
@@ -128,11 +138,11 @@ export class ExportManager {
   private exportToText(content: ScrapedContent): string {
     const { title, url, content: textContent, timestamp } = content;
 
-    let text = '';
+    let text = "";
     text += `标题: ${title}\n`;
     text += `来源: ${url}\n`;
-    text += `爬取时间: ${new Date(timestamp).toLocaleString('zh-CN')}\n`;
-    text += `${'='.repeat(50)}\n\n`;
+    text += `爬取时间: ${new Date(timestamp).toLocaleString("zh-CN")}\n`;
+    text += `${"=".repeat(50)}\n\n`;
     text += textContent;
 
     return text;
@@ -184,7 +194,9 @@ export class ExportManager {
         <h1>${title}</h1>
         <div class="meta">
             <p><strong>来源:</strong> <a href="${url}" target="_blank">${url}</a></p>
-            <p><strong>爬取时间:</strong> ${new Date(timestamp).toLocaleString('zh-CN')}</p>
+            <p><strong>爬取时间:</strong> ${new Date(timestamp).toLocaleString(
+              "zh-CN"
+            )}</p>
         </div>
     </div>
     <div class="content">
@@ -213,12 +225,12 @@ export class ExportManager {
   private extractMainContent(html: string): string {
     // 使用正则表达式链式调用，移除各类不需要的标签及其内容。
     return html
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-      .replace(/<nav\b[^>]*>.*?<\/nav>/gi, '')
-      .replace(/<header\b[^>]*>.*?<\/header>/gi, '')
-      .replace(/<footer\b[^>]*>.*?<\/footer>/gi, '')
-      .replace(/<aside\b[^>]*>.*?<\/aside>/gi, '');
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+      .replace(/<nav\b[^>]*>.*?<\/nav>/gi, "")
+      .replace(/<header\b[^>]*>.*?<\/header>/gi, "")
+      .replace(/<footer\b[^>]*>.*?<\/footer>/gi, "")
+      .replace(/<aside\b[^>]*>.*?<\/aside>/gi, "");
   }
 
   /**
@@ -228,24 +240,24 @@ export class ExportManager {
   private setupTurndownRules() {
     // 规则1：优化图片转换。
     // 默认情况下，Turndown 可能会丢失 alt 文本。我们确保它被保留。
-    this.turndownService.addRule('images', {
-      filter: 'img',
+    this.turndownService.addRule("images", {
+      filter: "img",
       replacement: (content: string, node: any) => {
-        const alt = node.getAttribute('alt') || '';
-        const src = node.getAttribute('src') || '';
+        const alt = node.getAttribute("alt") || "";
+        const src = node.getAttribute("src") || "";
         return `![${alt}](${src})`;
-      }
+      },
     });
 
     // 规则2：优化代码块转换。
     // 将 <pre> 标签转换为标准的 Markdown 围栏代码块。
-    this.turndownService.addRule('codeBlocks', {
-      filter: ['pre'],
+    this.turndownService.addRule("codeBlocks", {
+      filter: ["pre"],
       replacement: (content: string) => {
         // 移除内部 <code> 标签可能带来的多余缩进
-        const codeContent = content.replace(/<code.*?>|<\/code>/g, '');
+        const codeContent = content.replace(/<code.*?>|<\/code>/g, "");
         return `\n\`\`\`\n${codeContent.trim()}\n\`\`\`\n`;
-      }
+      },
     });
   }
 }
