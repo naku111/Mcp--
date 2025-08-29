@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { WebScraperMCPServer } from "./index.js";
 
 // 启动服务
