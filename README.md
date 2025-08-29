@@ -6,15 +6,15 @@
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@naku111/mcpServer/badge" alt="Web Scraper Server MCP server" />
 </a>
 
-## 配置MCP
-  {
-  "mcpServers": {
-    "web": {
-      "command": "node",
-      "args": ["path/build/start.js"]
+## 使用npx配置MCP（无需clone代码）
+    "web-scraper-puppeteer": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "web-scraper-mcp-puppeteer",
+        "mcpserver-puppeteer-nakiwang"
+      ]
     }
-  }
-  }
 ## 功能特性
 
 - 🚀 **多种导出格式**: 支持将爬取内容导出为 Markdown、Text、HTML 和 JSON 格式
