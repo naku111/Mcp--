@@ -4,7 +4,7 @@
   "description": "基于 MCP 的网页爬取服务器，内置 Puppeteer 无头浏览器支持",
   "main": "build/index.js",
   "bin": {
-    "mcpserver": "./build/start.js"
+    "mcpserver-puppeteer-nakiwang": "./build/start.js"
   },
   "type": "module",
   "scripts": {
